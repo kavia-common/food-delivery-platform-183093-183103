@@ -1,0 +1,97 @@
+:root {
+  /* Color palette from style guide */
+  --color-primary: #3b82f6;   /* Primary */
+  --color-secondary: #64748b; /* Secondary (muted) */
+  --color-success: #06b6d4;   /* Accent/Success */
+  --color-error: #EF4444;     /* Error */
+  --color-bg: #f9fafb;        /* Background */
+  --color-surface: #ffffff;   /* Surface */
+  --color-text: #111827;      /* Text */
+  --color-text-muted: #6b7280; /* Muted text */
+  --color-border: #e5e7eb;    /* Border neutral */
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Typography */
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --line-height: 1.5;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Layout */
+  --container-max: 1200px;
+
+  /* Gradient utilities: from primary/10 to gray-50 */
+  --gradient-primary-soft: linear-gradient(180deg, rgba(59,130,246,0.10), #f9fafb);
+}
+
+/* Utility classes */
+.u-container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.u-gradient-soft {
+  background: var(--gradient-primary-soft);
+}
+
+.u-surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+}
+
+.u-link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.u-link:hover {
+  text-decoration: underline;
+}
+
+.u-hidden-mobile {
+  display: block;
+}
+@media (max-width: 768px) {
+  .u-hidden-mobile {
+    display: none !important;
+  }
+}
+
+/* Accessibility helpers */
+.visually-hidden {
+  position: absolute !important;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 0 !important;
+  border: 0 !important;
+  height: 1px !important;
+  width: 1px !important;
+  overflow: hidden;
+}
