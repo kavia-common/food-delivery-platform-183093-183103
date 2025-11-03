@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import './styles/global.css';
 import Header from './components/Layout/Header.jsx';
 import Footer from './components/Layout/Footer.jsx';
@@ -6,6 +6,9 @@ import CartSidebar from './components/Layout/CartSidebar.jsx';
 import Button from './components/UI/Button.jsx';
 import Card from './components/UI/Card.jsx';
 import Input from './components/UI/Input.jsx';
+import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import { AuthContext, AuthProvider } from './context/AuthContext.jsx';
+import { bindAuthRuntime } from './utils/authRuntime';
 
 // Tiny in-file page components to keep logic simple and avoid extra deps/router
 function HomePage() {
@@ -63,13 +66,59 @@ function RestaurantsPage() {
 }
 
 function LoginPage() {
+  const { login } = useContext(AuthContext);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!email || !password) {
+      setError('Please enter email and password.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await login(email, password);
+      // Redirect to returnTo if provided, else home
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('returnTo');
+      window.location.assign(returnTo || '/');
+    } catch (err) {
+      setError(err?.message || 'Login failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="u-container" style={{ maxWidth: 440 }}>
       <Card title="Welcome back" subtitle="Login to continue">
-        <form style={{ display: 'grid', gap: 12 }}>
-          <Input type="email" name="email" label="Email" placeholder="you@example.com" />
-          <Input type="password" name="password" label="Password" placeholder="********" />
-          <Button type="submit">Login</Button>
+        <form style={{ display: 'grid', gap: 12 }} onSubmit={onSubmit} noValidate>
+          <Input
+            type="email"
+            name="email"
+            label="Email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            type="password"
+            name="password"
+            label="Password"
+            placeholder="********"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {error ? (
+            <div style={{ color: 'var(--color-error)', fontSize: 14 }}>{error}</div>
+          ) : null}
+          <Button type="submit" disabled={submitting}>{submitting ? 'Logging in...' : 'Login'}</Button>
           <p style={{ margin: 0, fontSize: 14 }}>
             New here? <a className="u-link" href="/register">Create account</a>
           </p>
@@ -80,14 +129,51 @@ function LoginPage() {
 }
 
 function RegisterPage() {
+  const { register } = useContext(AuthContext);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    if (!email || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await register({ email, password, full_name: fullName || null });
+      setSuccessMsg('Registration successful. Please log in.');
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        window.location.assign('/login');
+      }, 800);
+    } catch (err) {
+      setError(err?.message || 'Registration failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="u-container" style={{ maxWidth: 480 }}>
       <Card title="Create your account" subtitle="Join and start ordering">
-        <form style={{ display: 'grid', gap: 12 }}>
-          <Input type="text" name="name" label="Full name" placeholder="Jane Doe" />
-          <Input type="email" name="email" label="Email" placeholder="you@example.com" />
-          <Input type="password" name="password" label="Password" placeholder="********" />
-          <Button type="submit" variant="success">Sign up</Button>
+        <form style={{ display: 'grid', gap: 12 }} onSubmit={onSubmit} noValidate>
+          <Input type="text" name="name" label="Full name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input type="email" name="email" label="Email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <Input type="password" name="password" label="Password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          {error ? <div style={{ color: 'var(--color-error)', fontSize: 14 }}>{error}</div> : null}
+          {successMsg ? <div style={{ color: 'var(--color-success)', fontSize: 14 }}>{successMsg}</div> : null}
+          <Button type="submit" variant="success" disabled={submitting}>{submitting ? 'Creating...' : 'Sign up'}</Button>
           <p style={{ margin: 0, fontSize: 14 }}>
             Already have an account? <a className="u-link" href="/login">Login</a>
           </p>
@@ -115,9 +201,10 @@ function OrderStatusPage() {
 }
 
 // PUBLIC_INTERFACE
-function App() {
+function AppInner() {
   // Light theme by default per guide
   const [theme] = useState('light');
+  const auth = useContext(AuthContext);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -125,13 +212,29 @@ function App() {
     document.body.style.color = 'var(--color-text)';
   }, [theme]);
 
-  // Minimal hash-based view routing to avoid extra dependencies
+  // Bind runtime for api helper access to token and base URL
+  useEffect(() => {
+    bindAuthRuntime({
+      API_BASE: auth.API_BASE,
+      token: () => auth.token,
+      logout: auth.logout,
+    });
+  }, [auth]);
+
+  // Minimal pathname based routing
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   const Page = useMemo(() => {
     if (path.startsWith('/restaurants')) return RestaurantsPage;
     if (path.startsWith('/login')) return LoginPage;
     if (path.startsWith('/register')) return RegisterPage;
-    if (path.startsWith('/order')) return OrderStatusPage;
+    if (path.startsWith('/order')) {
+      // Protect order status
+      return () => (
+        <ProtectedRoute>
+          <OrderStatusPage />
+        </ProtectedRoute>
+      );
+    }
     return HomePage;
   }, [path]);
 
@@ -144,6 +247,15 @@ function App() {
       <CartSidebar />
       <Footer />
     </div>
+  );
+}
+
+// PUBLIC_INTERFACE
+function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }
 
